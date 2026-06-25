@@ -15,8 +15,10 @@
 
 // ---- Configuration ------------------------------------------------------
 // Full node image (buildpack-deps based) ships git/curl, plus node/npm for the
-// build and npx for wrangler.
-local nodeImage = 'node:24-trixie';
+// build and npx for wrangler. Pinned to Node 22: Phanpy's package.json requires
+// `npm >=10.3.0 <11.5.0`, and Node 24 ships npm 11.16 (out of range, triggers
+// EBADENGINE). Node 22 ships npm 10.9, which satisfies it.
+local nodeImage = 'node:22-trixie';
 
 // The branch on this repo that triggers a deploy when pushed.
 local deployBranch = 'pages';
@@ -47,10 +49,12 @@ local distDir = srcDir + '/dist';
     { event: 'manual' },
   ],
 
-  // This branch has nothing worth cloning, so we replace the default clone
-  // with a shallow clone of *upstream* Phanpy at the pinned ref. Everything
-  // else in the workflow operates inside `srcDir`.
-  clone: [
+  // Let Crow's default (trusted) clone plugin check out this repo normally.
+  // Overriding `clone` with a custom image trips the CROW_PLUGINS_TRUSTED_CLONE
+  // warning and skips .netrc injection. We don't need this repo's contents, but
+  // a default clone is cheap and harmless; the upstream source is fetched below
+  // as an ordinary build step (public repo, no credentials required).
+  steps: [
     {
       name: 'clone-upstream',
       image: nodeImage,
@@ -58,12 +62,10 @@ local distDir = srcDir + '/dist';
         'git clone --depth 1 --branch "%s" "%s" "%s"' % [upstreamRef, upstreamRepo, srcDir],
       ],
     },
-  ],
-
-  steps: [
     {
       name: 'build',
       image: nodeImage,
+      depends_on: ['clone-upstream'],
       // ---- CUSTOMIZE ME -------------------------------------------------
       // These PHANPY_* vars are baked into the static bundle at build time.
       // Plain values are fine for non-secret config; use `from_secret` for
