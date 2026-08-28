@@ -15,10 +15,21 @@
 
 // ---- Configuration ------------------------------------------------------
 // Full node image (buildpack-deps based) ships git/curl, plus node/npm for the
-// build and npx for wrangler. Pinned to Node 22: Phanpy's package.json requires
-// `npm >=10.3.0 <11.5.0`, and Node 24 ships npm 11.16 (out of range, triggers
-// EBADENGINE). Node 22 ships npm 10.9, which satisfies it.
-local nodeImage = 'node:22-trixie';
+// build and npx for wrangler. Pinned to Node 24 to match upstream: every one of
+// Phanpy's own workflows (including `prodtag.yml`, which builds the `production`
+// tag we clone, and `custom-build.yml`, the "custom build way" this pipeline
+// replicates) runs `npm ci && npm run build` on node-version 24.
+//
+// Node 24 ships npm 11.19, which is outside Phanpy's `npm >=10.3.0 <11.5.0`
+// engines range, so `npm ci` prints an EBADENGINE warning. That is advisory
+// only -- engine-strict defaults to false and upstream has no .npmrc. The pin
+// exists upstream because npm >=11.5 writes bogus `extraneous` platform entries
+// when *regenerating* package-lock.json; `npm ci` never writes the lockfile, so
+// a consumer cannot hit it.
+//
+// Stay on Debian, not Alpine: the alpine images have no git (breaks the clone
+// step) and wrangler's hard `workerd` dependency only publishes glibc binaries.
+local nodeImage = 'node:24-trixie';
 
 // The branch on this repo that triggers a deploy when pushed.
 local deployBranch = 'pages';
