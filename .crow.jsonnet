@@ -45,7 +45,7 @@ local productionBranch = 'main';
 // --- Upstream source we build. Bump these to track a new release. ---
 // `upstreamRef` can be a branch (e.g. 'production') or a tag (e.g. '2025.06.01').
 local upstreamRepo = 'https://github.com/cheeaun/phanpy.git';
-local upstreamRef = 'production';
+local upstreamRef = '2026.10.09.febb38d';
 local srcDir = 'phanpy';
 
 // Vite build output that wrangler uploads.
